@@ -53,7 +53,7 @@ class odometry {
 	geometry_msgs::Pose2D world_position;
 
 	// odom frame variables
-	double tick_to_cm;
+	double tick_to_m;
 	double baseline;
 	geometry_msgs::Pose2D odom_position;
 	nav_msgs::Odometry odom;
@@ -102,7 +102,7 @@ odometry::odometry() {
 	odom_position.y = 0.0;
 	odom_position.theta = 0.0;
 
-	tick_to_cm = ((utility::geometry::pi * diameter) / ticks_per_rev); // calculate how far one tick takes the wheel
+	tick_to_m = ((utility::geometry::pi * diameter) / ticks_per_rev) / 100.0; // calculate how far one tick takes the wheel
 }
 
 void odometry::gps_callback(const sensor_msgs::NavSatFix::ConstPtr &fix) {
@@ -126,16 +126,16 @@ void odometry::gps_callback(const sensor_msgs::NavSatFix::ConstPtr &fix) {
 }
 
 void odometry::imu_callback(const sensor_msgs::Imu::ConstPtr &imu) {
-	imu_data_prev = imu_data;
+	using namespace utility::circular_range;
 	imu_data = *imu;
-	rotation_delta = utility::circular_range::wrap(tf::getYaw(imu_data_prev.orientation) - tf::getYaw(imu_data.orientation), 360.0);
+	odom_position.theta = radians(wrap(degrees(direction(tf::getYaw(imu_data.orientation, odom_position.theta) * smallest_difference(tf::getYaw(imu_data.orientation), odom_position.theta), 360.0));
 }
 
 void odometry::encoder_callback(const isc_shared_msgs::EncoderCounts::ConstPtr &counts) {
 	ros::Time current_time = ros::Time::now();
 	double timestep = (current_time - last_odom_update).toSec(); // calculate timestep
 
-	double distance_traveled = ((counts->left_count * tick_to_cm) * (counts->right_count * tick_to_cm)) / 2; // calculate distance traveled in cm
+	double distance_traveled = ((counts->left_count * tick_to_m) + (counts->right_count * tick_to_m)) / 2; // calculate distance traveled in cm
 
 	odom_position.x += distance_traveled * std::cos(utility::geometry::radians(odom_position.theta)); // update x position
 	odom_position.y += distance_traveled * std::sin(utility::geometry::radians(odom_position.theta)); // update y position
@@ -158,7 +158,7 @@ void odometry::encoder_callback(const isc_shared_msgs::EncoderCounts::ConstPtr &
 
 	odom.child_frame_id = t.child_frame_id;
 
-	odom.twist.twist.linear.x = (distance_traveled / timestep) * 100.0; // calculate linear velocity and convert to m/s
+	odom.twist.twist.linear.x = (distance_traveled / timestep); // calculate linear velocity and convert to m/s
 	odom.twist.twist.angular = imu_data.angular_velocity;
 
 	odom_br.sendTransform(t);

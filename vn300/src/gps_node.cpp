@@ -171,9 +171,9 @@ void vn300_packet_handler(void *userdata, vn::protocol::uart::Packet &p, size_t 
 			vec3f ang_rate = p.extractVec3f();
 			vec3f lin_accel = p.extractVec3f();
 			
-			msg.orientation.x = qtn[0];
-			msg.orientation.y = qtn[1];
-			msg.orientation.z = qtn[2];
+			msg.orientation.x = qtn[1];
+			msg.orientation.y = qtn[0];
+			msg.orientation.z = -qtn[2];
 			msg.orientation.w = qtn[3];
 
 			msg.angular_velocity.x = ang_rate[0];
