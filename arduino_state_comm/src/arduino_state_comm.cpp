@@ -177,21 +177,46 @@ void ArduinoStateComm::readArduino(std::string token)
 {
     // As of 2-26-19: Each token is a string of numbers separated by commas
     //      1st = kill, 2nd = pause, 3-8 = cell voltage, 9 = temp
+	// $ 1 1 1 123 456 789 123 456 789
 	std::vector<std::string> data;
 	boost::split(data, token, boost::is_any_of(","));
 
-	if(!data.empty()) 
+	if(data.size() == 10 && data[0] == "$") 
   {
-		bool killState = boost::lexical_cast<bool>(data[1]);
-		bool pauseState = boost::lexical_cast<bool>(data[2]);
+		bool estopState, killState, pauseState;
+		try {
+			estopState = boost::lexical_cast<bool>(data[1]);
+			killState = boost::lexical_cast<bool>(data[2]);
+			pauseState = boost::lexical_cast<bool>(data[3]);
+		} catch (std::exception &e) {
+			ROS_ERROR("%s", e.what());
+			for(int i = 1; i < 4; i++) {
+				ROS_WARN("data[%d]: %s", i, data[i].c_str());
+			}
+			ROS_WARN("Got: %s", token.c_str());
+			
+			return;
+		}
 
 		std::vector<float> cellValues;
     
 		float total_voltage = 0.0;
-		for(int cell = 3; cell < data.size(); cell++) {
-			cellValues.push_back(boost::lexical_cast<float>(cell) * (5.0 / 1024.0));
-			total_voltage += cellValues.back();
+		try {
+			for(int cell = 4; cell < data.size(); cell++) {
+				cellValues.push_back(boost::lexical_cast<float>(cell) * (5.0 / 1024.0));
+				total_voltage += cellValues.back();
+			}
+		} catch (std::exception &e) {
+			ROS_ERROR("%s", e.what());
+			for(int i = 4; i < data.size(); i++) {
+				ROS_WARN("data[%d]: %s", i, data[i].c_str());
+			}
+			ROS_WARN("Got: %s", token.c_str());
+
+			return;
 		}
+
+		ROS_INFO("Got: %s", token.c_str());
 
 		// double temp = boost::lexical_cast<double>(data.back());
 		publishArduinoInfo(killState, pauseState, cellValues, total_voltage);
