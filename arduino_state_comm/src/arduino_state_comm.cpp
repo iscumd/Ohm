@@ -78,8 +78,8 @@ ArduinoStateComm::ArduinoStateComm()
     gpsStatusSub = nodeHandle.subscribe("gpsStatus", 1, &ArduinoStateComm::gpsStatusReceivedCallback, this);
 
     // Publish to topic.arduinoInfoPub
-    arduinoKillStatePub = nodeHandle.advertise<std_msgs::String>("arduino_kill_state", 1);
-	arduinoPauseStatePub = nodeHandle.advertise<std_msgs::String>("arduino_pause_state", 1);
+    arduinoKillStatePub = nodeHandle.advertise<std_msgs::Bool>("arduino_kill_state", 1);
+	arduinoPauseStatePub = nodeHandle.advertise<std_msgs::Bool>("arduino_pause_state", 1);
     arduinoBatteryPub = nodeHandle.advertise<sensor_msgs::BatteryState>("arduino_batteries", 1);
 
 	connected = false;
@@ -228,8 +228,8 @@ void ArduinoStateComm::readArduino(std::string token)
 void ArduinoStateComm::publishArduinoInfo(bool kill, bool pause, std::vector<float> cellVoltages, float voltage)
 {
 	// set the state machine signals
-	std_msgs::String killSignal;
-	std_msgs::String pauseSignal;
+	std_msgs::Bool killSignal;
+	std_msgs::Bool pauseSignal;
 
 	killSignal.data = kill;
 	pauseSignal.data = pause;
