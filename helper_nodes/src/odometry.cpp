@@ -127,8 +127,9 @@ void odometry::gps_callback(const sensor_msgs::NavSatFix::ConstPtr &fix) {
 
 void odometry::imu_callback(const sensor_msgs::Imu::ConstPtr &imu) {
 	using namespace utility::circular_range;
+	using namespace utility::geometry;
 	imu_data = *imu;
-	odom_position.theta = radians(wrap(degrees(direction(tf::getYaw(imu_data.orientation, odom_position.theta) * smallest_difference(tf::getYaw(imu_data.orientation), odom_position.theta), 360.0));
+	odom_position.theta = radians(wrap(degrees(direction(tf::getYaw(imu_data.orientation), odom_position.theta) * smallest_difference(tf::getYaw(imu_data.orientation), odom_position.theta)), 360.0));
 }
 
 void odometry::encoder_callback(const isc_shared_msgs::EncoderCounts::ConstPtr &counts) {
