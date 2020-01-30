@@ -1,0 +1,5 @@
+<launch>
+	<node pkg="tf" name="laser_link" type="static_transform_publisher" args="0 0 0 0 0 0 base_link laser 100" />
+	<node pkg="tf" name="camera_link" type="static_transform_publisher" args="0 0 0 0 0 0 base_link camera 100" />
+	<node pkg="tf" name="odom_link" type="static_transform_publisher" args="0 0 0 0 0 0 odom base_link" />
+</launch>
