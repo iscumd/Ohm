@@ -1,0 +1,54 @@
+<launch>
+	<!-- topic bases -->
+	<arg name="input_base" value="/ohm/input" />
+	<arg name="signal_base" value="/ohm/signals" />
+	<arg name="actuation_base" value="/ohm/actuation" />
+	<arg name="state_base" value="/ohm/state" />
+	<arg name="service_base" value="/ohm/services" />
+	<arg name="sensing_base" value="/ohm/sensing" />
+	<arg name="localization_base" value="/ohm/localization" />
+	<arg name="navigation_base" value="/ohm/navigation" />
+	<arg name="feedback_base" value="/ohm/feedback" />
+
+
+	<!-- joystick -->
+	<remap from="joy" to="$(arg input_base)/joy" />
+	<remap from="joystick/xinput" to="$(arg input_base)/xinput" />
+	<remap from="manual_control_vel" to="$(arg actuation_base)/manual_control" />
+	<include file="$(find isc_joy)/launch/joystick_xbox360.launch" />
+
+	<!-- robot state control -->
+	<remap from="state/robot" to="$(arg state_base)/system" />
+	<remap from="signal/kill" to="$(arg signal_base)/kill" />
+	<remap from="signal/pause" to="$(arg signal_base)/pause" />
+	<remap from="signal/soft_pause" to="$(arg signal_base)/soft_pause" />	
+	<include file="$(find robot_state_controller)/launch/robot_state_controller/state_control.launch" />
+	
+	<!-- drive mode switch -->
+	<remap from="robot_state" to="$(arg state_base)/system" />
+	<remap from="joystick" to="$(arg input_base)/xinput" />
+	<remap from="auto_control_vel" to="$(arg actuation_base)/auto_control" />
+	<remap from="control_vel" to="$(arg actuation_base)/control" />
+	<remap from="drive_mode" to="$(arg state_base)/drive_mode" />
+	<include file="$(find robot_state_controller)/launch/drive_mode_switch/switch.launch" />
+
+	<!-- arduino comm -->
+	<remap from="driveMode" to="$(arg state_base)/drive_mode" />
+	<remap from="gpsStatus" to="$(arg feedback_base)/gps" />
+	<remap from="arduino_kill_state" to="$(arg signal_base)/kill" />
+	<remap from="arduino_pause_state" to="$(arg signal_base)/pause" />
+	<remap from="arduino_batteries" to="$(arg feedback_base)/power" />
+	<include file="$(find arduino_state_comm)/launch/arduino.launch">
+		<arg name="serial_port" value="/dev/ttyACM0" />
+	</include>
+	
+	<!-- roboteq -->
+	<remap from="motor_control" to="$(arg actuation_base)/control" />
+	<remap from="encoder_counts" to="$(arg feedback_base)/encoders" />
+	<include file="$(find isc_roboteq_mdc2460)/launch/roboteq.launch">
+		<arg name="device" value="/dev/ttyACM1" />
+		<arg name="has_encoders" value="true" />
+		<arg name="gear_reduction" value="18.0" />
+		<arg name="flip_inputs" value="true" />
+	</include>
+</launch>
