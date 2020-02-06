@@ -7,7 +7,7 @@ int main(int argc, char **argv) {
 
 	ros::Rate rt(1);
 	
-	while (!bridge.connected() && ros::ok()) {
+	while (!bridge.connect() && ros::ok()) {
 		rt.sleep();
 		ROS_INFO("Attempting to connect to arduino!");
 	}
