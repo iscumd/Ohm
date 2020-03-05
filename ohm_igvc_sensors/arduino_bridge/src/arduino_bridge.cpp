@@ -15,6 +15,10 @@ arduino_bridge::arduino_bridge() {
 	nh_private.param("device", device_name, std::string("/dev/ttyACM0"));
 
 	drive_mode_sub = nh.subscribe("drive_mode", 1, &arduino_bridge::drive_mode_cb, this);
+
+	estop_state = nh.advertise<isc__msgs::Bool>("estop", 10);
+	kill_state = nh.advertise<isc__msgs::Bool>("kill", 10);
+	pause_state = nh.advertise<isc__msgs::Bool>("pause", 10);
 }
 
 arduino_bridge::~arduino_bridge() {
@@ -73,6 +77,21 @@ bool arduino_bridge::send(std::string cmd) {
 
 void arduino_bridge::receive(std::string response) {
 	ROS_DEBUG("Received from Arduino: %s", response.c_str());
+	std::vector<std::string> data;
+	boost::split(data, response, boost::is_any_of(","));
+	if (data.at(0)  == "$"){
+
+		msg = boost::lexical_cast<bool>(data.at(1));
+		estop_state.publish(msg);
+
+		msg = boost::lexical_cast<bool>(data.at(2));
+		kill_state.publish(msg);
+
+		msg = boost::lexical_cast<bool>(data.at(3));
+		pause_state.publish(msg);
+	}
+	
+	
 }
 
 void arduino_bridge::drive_mode_cb(const std_msgs::String::ConstPtr &msg) {
