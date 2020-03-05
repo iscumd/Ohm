@@ -28,7 +28,9 @@ class arduino_bridge {
 		std::string device_name;	
 
 		serial::Serial serial_device;
-        serial::utils::SerialListener serial_listener;
+        	serial::utils::SerialListener serial_listener;
 
 		ros::Subscriber drive_mode_sub;
+
+		std_msgs::Bool msg;
 };
