@@ -1,0 +1,46 @@
+<launch>
+	<remap from="pose" to="/ohm/raw_pose" />
+	<remap from="/RosAria/cmd_vel" to="/ohm/control" />
+
+	<!-- Heading Control -->
+	<remap from="auto_control" to="/ohm/auto_control" />
+	<remap from="lidar" to="/ohm/ranges" />
+	<include file="$(find heading_control)/launch/heading.launch">
+		<arg name="using_lidar" value="true" />
+		<arg name="flip_angular" value="false" />
+		<arg name="max_speed" value="0.3" />
+		<arg name="max_turn" value="0.2" />
+	</include>
+
+	<!-- LiDAR Node and Object Detection -->
+	<remap from="/RosAria/sim_lms2xx_1_pointcloud" to="/ohm/pcl" />
+	<remap from="ranges" to="/ohm/ranges" />
+	<remap from="scan_to_xy_out" to="/ohm/pcl" />
+	<param name="forgivable" value="4" />
+	<param name="max_point_distance" value="1.2" />
+	<param name="min_group_count" value="4" />
+	<param name="reaction_distance" value="1.8" />
+	<param name="base_frame" value="base_link" />
+	<param name="reference_frame" value="odom" />
+	<node pkg="object_detection" name="object_detection" type="object_detection_node" output="screen" />
+	
+	<!-- Joystick and Manual Control-->
+	<remap from="joy" to="/ohm/joy" />
+	<param name="~dev" value="/dev/input/js1" />
+	<node pkg="joy" type="joy_node" name="joy_node" />
+	<remap from="joystick/xinput" to="/ohm/xinput" />
+	<node pkg="isc_joy" type="joystick_xbox360" name="joystick_xbox360" />
+	<remap from="/manual_control" to="/ohm/control" />
+	<param name="manual_control_speed_multiplier" value="0.3" />
+	<param name="manual_control_turn_multiplier" value="0.2" />
+	<node pkg="isc_joy" type="manual_control" name="manual_control" />
+
+	<!-- ROSAria -->
+	<param name="/RosAria/publish_aria_lasers" value="true" />
+	<node pkg="rosaria" type="RosAria" name="RosAria" />
+
+	<!-- ROSBridge -->
+	<include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"> 
+    	<arg name="port" value="9090"/>
+ 	</include>
+</launch>

@@ -1,0 +1,71 @@
+<launch>
+	<!-- GPS -->
+	<remap from="pose" to="/ohm/raw_pose" />
+	<remap from="velocities" to="/ohm/velocity" />
+	<remap from="status" to="/ohm/gps_status" />
+	<include file="$(find vn300)/launch/vn300.launch" />
+
+	<!-- Odometry -->
+	<remap from="odom" to="/ohm/odom" />
+	<include file="$(find helper_nodes)/launch/odometry.launch">
+		<!-- arg name="lat_origin" value="42.3200317" / -->
+		<!-- arg name="lon_origin" value="-83.2312428" / -->
+		<arg name="lat_origin" value="42.679353" />
+		<arg name="lon_origin" value="-83.195195"/>
+	</include>
+
+	<!-- Waypoint Service -->
+	<include file="$(find helper_nodes)/launch/waypoint.launch">
+		<arg name="nav_file" value="gps_test_2.txt" />
+	</include>
+
+	<!-- Heading Control -->
+	<remap from="auto_control" to="/ohm/auto_control" />
+	<remap from="lidar" to="/ohm/ranges" />
+	<include file="$(find heading_control)/launch/heading.launch">
+		<arg name="using_gps" value="false" />
+		<arg name="using_lidar" value="true" />
+		<arg name="using_camera" value="false" />
+		<arg name="flip_angular" value="true" />
+		<arg name="max_speed" value="0.3" />
+		<arg name="max_turn" value="0.2" />
+	</include>
+
+	<!-- Static Transforms -->
+	<node pkg="tf" type="static_transform_publisher" name="laser_link" args="0.3 0 0 0 0 0 ohm_base_link laser 100" />
+
+	<!-- LiDAR Node and Object Detection -->
+	<remap from="scan" to="/ohm/scan" />
+	<include file="$(find isc_sick)/launch/LMS1xx.launch"/>
+	<remap from="scan_to_xy_out" to="/ohm/pcl" />
+	<param name="use_tf" value="true" />
+	<node pkg="helper_nodes" type="scan_to_xy" name="scan_to_xy" />
+	<remap from="ranges" to="/ohm/ranges" />
+	<param name="forgivable" value="4" />
+	<param name="max_point_distance" value="1.4" />
+	<param name="min_group_count" value="4" />
+	<param name="reaction_distance" value="2.0" />
+	<param name="base_frame" value="ohm_base_link" />
+	<node pkg="object_detection" name="object_detection" type="object_detection_node" output="screen" />
+	
+	<!-- Joystick and Manual Control-->
+	<remap from="joy" to="/ohm/joy" />
+	<param name="~dev" value="/dev/input/js1" />
+	<node pkg="joy" type="joy_node" name="joy_node" />
+	<remap from="joystick/xinput" to="/ohm/xinput" />
+	<node pkg="isc_joy" type="joystick_xbox360" name="joystick_xbox360" />
+	<remap from="/manual_control" to="/ohm/manual_control" />
+	<param name="manual_control_speed_multiplier" value="0.3" />
+	<param name="manual_control_turn_multiplier" value="0.2" />
+	<node pkg="isc_joy" type="manual_control" name="manual_control" />
+
+	<!-- Drive Mode Control -->
+	<remap from="motors/wheel_speeds" to="/ohm/wheel_speeds" />
+	<remap from="joystick/xbox360" to="/ohm/xinput" />	
+	<param name="arduino_serial_port" value="/dev/ttyACM1" />
+	<node pkg="drive_mode_control" type="drive_mode_control" name="ohm_drive_mode_control" />
+
+	<!-- Motor Controller -->
+	<param name="serial_port" value="/dev/ttyACM0" />
+	<node pkg="isc_roboteq_mdc2460" type="roboteq_mdc2460" name="roboteq_mdc2460" />
+</launch>
