@@ -1,0 +1,6 @@
+<launch>
+	<arg name="serial_port" default="/dev/ttyAMC0" />
+	<node pkg="arduino_state_comm" name="arduino_interface" type="arduino_state_comm_node" launch-prefix="gdb -ex --args">
+		<param name="port" value="$(arg serial_port)" />
+	</node>
+</launch>
