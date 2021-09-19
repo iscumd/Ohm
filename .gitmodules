@@ -1,3 +1,8 @@
 [submodule "src/robot_state_controller"]
 	path = src/robot_state_controller
 	url = https://github.com/iscumd/robot_state_controller
+
+[submodule "src/isc_joy"]
+	path = src/isc_joy
+	url = https://github.com/iscumd/isc_joy
+	

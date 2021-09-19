@@ -11,16 +11,23 @@
 
 
 	// Add the IDs of extensions you want installed when the container is created.
-	"extensions": ["ms-vscode.cpptools","ms-vscode.cmake-tools", 
+	"extensions": ["ms-vscode.cpptools",
+		"ms-vscode.cmake-tools",
+		"twxs.cmake", 
 		"visualstudioexptteam.vscodeintellicode", 
 		"christian-kohler.path-intellisense", 
-		"ms-iot.vscode-ros"],
+		"ms-iot.vscode-ros",
+		"ms-azuretools.vscode-docker",
+		"k--kato.intellij-idea-keybindings",
+		"rust-lang.rust",
+		"matklad.rust-analyzer",
+		"ms-python.python"],
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
 
-	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "rosdep install --from-paths src --ignore-src -r -y && catkin init && git submodule init && git submodule update && source devel/setup.bash",
+	// Init workspace when container is first made.
+	"postCreateCommand": "rosdep install --from-paths src --ignore-src -r -y && catkin init && git submodule init && git submodule update && mkdir -p /workspaces/Ohm/src/include/ && mv /serial/ /workspaces/Ohm/src/include && mv /serial_utils/ /workspaces/Ohm/src/include",
 
 	// Comment out connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
 	//"remoteUser": "vscode"
