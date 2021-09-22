@@ -19,6 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   vn300
   visualization_msgs
+  isc_shared_msgs
 )
 
 ## System dependencies are found with CMake's conventions

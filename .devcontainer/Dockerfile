@@ -6,8 +6,8 @@ FROM osrf/ros:noetic-desktop-full-focal
 SHELL ["/bin/bash", "-c"]
 
 # Install tools
-RUN apt-get update && apt-get install git wget -y
-RUN apt-get update && apt-get install python3-catkin-tools python3-osrf-pycommon -y
+RUN sudo apt-get update && sudo apt-get install git wget -y
+RUN sudo apt-get update && sudo apt-get install python3-catkin-tools python3-osrf-pycommon -y
 
 # Source setup file, then install libs as they need the catkin bash sourced.
 RUN echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc && source /opt/ros/noetic/setup.bash \ 
@@ -16,7 +16,6 @@ RUN echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc && source /opt/ros/noe
     && git clone https://github.com/wjwwood/serial_utils.git 
 
 # TODO switch to non-root user to avoid the files being permissioned locked
-# TODO install rust ;)
 
 ####################################################
 # Install system OpenCv 4 and related dependancies #
@@ -39,3 +38,14 @@ RUN sudo apt update && sudo apt-get install -y libraw1394-11 \
 # Because of docker contexts, we need a copy of the lib in this dir to copy into the container.
 COPY flycapture2-2.13.3.31-amd64 flycapture2
 RUN cd flycapture2 && yes $'yes\nno' | sudo sh install_flycapture.sh
+
+########
+# Misc #
+########
+
+# Install rust for future experimentation
+RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
+
+# Run as non root
+RUN useradd -ms /bin/bash vscode
+USER vscode
