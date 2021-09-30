@@ -1,17 +1,23 @@
+// This file configures a vscode docker dev container. This can be used to develop in a containerized environment.
+// See the below links for more information. 
+
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
 // https://github.com/microsoft/vscode-dev-containers/tree/v0.194.0/containers/ubuntu
 {
 	"name": "ROS",
 	"build": {
-		"dockerfile": "Dockerfile",
+		"dockerfile": "../dev_env.dockerfile",
 	},
 	// Set *default* container specific settings.json values on container create.
-	"settings": {},
+	"settings": {
+		"typescript.suggest.paths": false
+	},
 	// Add the IDs of extensions you want installed when the container is created.
 	"extensions": [
 		"ms-vscode.cpptools",
 		"ms-vscode.cmake-tools",
 		"twxs.cmake",
+		"ms-python.python",
 		"visualstudioexptteam.vscodeintellicode",
 		"christian-kohler.path-intellisense",
 		"ms-iot.vscode-ros",
@@ -19,13 +25,12 @@
 		"k--kato.intellij-idea-keybindings",
 		"rust-lang.rust",
 		"matklad.rust-analyzer",
-		"ms-python.python",
 		"eamodio.gitlens"
 	],
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
 	// Init workspace when container is first made.
-	"postCreateCommand": "rosdep install --from-paths src --ignore-src -r -y && catkin init && git submodule init && git submodule update && mkdir -p /workspaces/Ohm/src/include/ && mv /serial/ /workspaces/Ohm/src/include && mv /serial_utils/ /workspaces/Ohm/src/include",
+	"postCreateCommand": "catkin init && vcs import < repos.yaml && echo '1234\n' | sudo -S rosdep install --from-paths src --ignore-src -r -y",
 	// Comment out connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
 	"remoteUser": "vscode"
 }
