@@ -1,0 +1,17 @@
+# These are the repos to be downloaded with vcstool
+repositories:
+  isc_joy:
+   type: git
+   url: https://github.com/iscumd/isc_joy
+   version: master
+  robot_state_controller:
+   type: git
+   url: https://github.com/iscumd/robot_state_controller
+  include/serial:
+   type: git
+   url: https://github.com/wjwwood/serial
+  include/serial_utils:
+   type: git
+   url: https://github.com/wjwwood/serial_utils
+  
+   

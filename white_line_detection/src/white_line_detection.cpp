@@ -226,10 +226,10 @@ class CameraNode
   
 	void createGUI()
 	{
-		cv::namedWindow("original", CV_WINDOW_FREERATIO);
-		cv::namedWindow("erosion", CV_WINDOW_FREERATIO);
-		cv::namedWindow("warp", CV_WINDOW_FREERATIO);
-		cv::namedWindow("TRACKBARS", CV_WINDOW_FREERATIO);
+		cv::namedWindow("original", cv::WINDOW_FREERATIO);
+		cv::namedWindow("erosion", cv::WINDOW_FREERATIO);
+		cv::namedWindow("warp", cv::WINDOW_FREERATIO);
+		cv::namedWindow("TRACKBARS", cv::WINDOW_FREERATIO);
 		//*****************GUI related *********************************
 		cv::createTrackbar("Low Blue", "TRACKBARS", &lowB, upperColor, lowBlueTrackbar);
 		cv::createTrackbar("Low Green", "TRACKBARS", &lowG, upperColor, lowGreenTrackbar);

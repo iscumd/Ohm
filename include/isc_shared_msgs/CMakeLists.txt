@@ -1,25 +1,17 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(helper_nodes)
+project(isc_shared_msgs)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11)
+# add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  geometry_msgs
-  laser_geometry
-  ohm_igvc_msgs
-  ohm_igvc_srvs
+  message_generation
   roscpp
-  roslib
-  sensor_msgs
+  rospy
   std_msgs
-  tf
-  vn300
-  visualization_msgs
-  isc_shared_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -56,11 +48,12 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES
+  drive_mode.msg
+  wheel_speeds.msg
+  EncoderCounts.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -77,10 +70,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   geometry_msgs#   ohm_igvc_msgs#   sensor_msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -112,9 +105,9 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-   INCLUDE_DIRS include
-#  LIBRARIES helper_nodes
-   CATKIN_DEPENDS geometry_msgs laser_geometry ohm_igvc_msgs ohm_igvc_srvs roscpp sensor_msgs tf vn300
+#  INCLUDE_DIRS include
+#  LIBRARIES isc_shared_msgs
+  CATKIN_DEPENDS message_runtime roscpp rospy std_msgs
 #  DEPENDS system_lib
 )
 
@@ -125,44 +118,39 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-  include/helper_nodes
+# include
   ${catkin_INCLUDE_DIRS}
 )
 
-## format for new cpp's
-# add_executable(<executable_name> src/<executable_source_files>)
-# add_dependencies(<executable_name> ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-# target_link_libraries(<executable_name> ${catkin_LIBRARIES})
+## Declare a C++ library
+# add_library(${PROJECT_NAME}
+#   src/${PROJECT_NAME}/isc_shared_msgs.cpp
+# )
 
-## waypoint selection
-add_executable(waypoint_selection src/waypoint_selection.cpp)
-add_dependencies(waypoint_selection ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(waypoint_selection ${catkin_LIBRARIES})
+## Add cmake target dependencies of the library
+## as an example, code may need to be generated before libraries
+## either from message generation or dynamic reconfigure
+# add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-## odometry
-add_executable(odometry src/odometry.cpp)
-add_dependencies(odometry ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(odometry ${catkin_LIBRARIES})
+## Declare a C++ executable
+## With catkin_make all packages are built within a single CMake context
+## The recommended prefix ensures that target names across packages don't collide
+# add_executable(${PROJECT_NAME}_node src/isc_shared_msgs_node.cpp)
 
-## scan_to_xy
-add_executable(scan_to_xy src/scan_xy_node.cpp)
-add_dependencies(scan_to_xy ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(scan_to_xy ${catkin_LIBRARIES})
+## Rename C++ executable without prefix
+## The above recommended prefix causes long target names, the following renames the
+## target back to the shorter version for ease of user use
+## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
+# set_target_properties(${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME node PREFIX "")
 
-## odometry_readout
-add_executable(odometry_readout src/odometry_readout.cpp)
-add_dependencies(odometry_readout ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(odometry_readout ${catkin_LIBRARIES})
+## Add cmake target dependencies of the executable
+## same as for the library above
+# add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-## test_broadcaster
-add_executable(test_broadcaster src/test_broadcaster.cpp)
-add_dependencies(test_broadcaster ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(test_broadcaster ${catkin_LIBRARIES})
-
-## test_listener
-add_executable(test_listener src/test_listener.cpp)
-add_dependencies(test_listener ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(test_listener ${catkin_LIBRARIES})
+## Specify libraries to link a library or executable target against
+# target_link_libraries(${PROJECT_NAME}_node
+#   ${catkin_LIBRARIES}
+# )
 
 #############
 ## Install ##
@@ -186,11 +174,11 @@ target_link_libraries(test_listener ${catkin_LIBRARIES})
 # )
 
 ## Mark cpp header files for installation
-install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-  FILES_MATCHING PATTERN "*.h"
-  PATTERN ".svn" EXCLUDE
-)
+# install(DIRECTORY include/${PROJECT_NAME}/
+#   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+#   FILES_MATCHING PATTERN "*.h"
+#   PATTERN ".svn" EXCLUDE
+# )
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
 # install(FILES
@@ -204,7 +192,7 @@ install(DIRECTORY include/${PROJECT_NAME}/
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_helper_nodes.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_isc_shared_msgs.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
