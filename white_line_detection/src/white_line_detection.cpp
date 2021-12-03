@@ -1,4 +1,3 @@
-#include <chrono>
 #include <opencv2/core/ocl.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/opencv.hpp>
@@ -11,8 +10,9 @@
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/CameraInfo.h>
 
-//TODO work on this file is assumed using http://wiki.ros.org/cv_camera for camera node
-
+/// Node that consumes images published on the 'image_raw' topic and republishes any
+/// white pixels in the images to pointcloud/pointcloud2. This is used to detect the white lines
+/// as an obstacle for Ohm to avoid.
 class WhiteLineDetectionNode
 {
 private:
@@ -27,7 +27,7 @@ private:
 	/// Subscribe to the camera feed
 	ros::Subscriber cameraInfoSub, imageSub;
 
-	/// The lower and upper bound for what we define 'white' as. TODO make sure this is correct.
+	/// The lower and upper bound for what we define 'white' as.
 	int lowColor, upperColor = 255, kernelSize, nthPixel;
 
 	/// The per color bounds of what we define a 'white' pixel as.
@@ -42,6 +42,7 @@ private:
 
 	/// The 3x3 perspective transform matrix. Should be treated as constant.
 	cv::UMat Utransmtx;
+	/// The region of intrest.
 	const cv::Rect ROI = cv::Rect(112, 12, 1670 - 112, 920 - 12); // TODO: change to params. (x, y, width, height)
 
 	/// Kernal used for white pixel filtering.
@@ -169,7 +170,7 @@ public:
 	cv::UMat ptgrey2CVMat(const sensor_msgs::ImageConstPtr &imageMsg) const
 	{
 		auto cvImage = cv_bridge::toCvCopy(imageMsg, "CV_8UC3"); // This should decode correctly, but we may need to deal with bayer filters depending on the driver.
-		return cvImage->image.getUMat(cv::ACCESS_RW); //TODO make sure this access is correct.
+		return cvImage->image.getUMat(cv::ACCESS_RW);			 //TODO make sure this access is correct.
 	}
 
 	/// Applies the perspective warp to the image.
@@ -272,7 +273,8 @@ public:
 			getPixelPointCloud(filteredImg);
 
 			//Display to gui if enabled.
-			if (enableImshow) display(cvImg, warpedImg, filteredImg);
+			if (enableImshow)
+				display(cvImg, warpedImg, filteredImg);
 		}
 	}
 
