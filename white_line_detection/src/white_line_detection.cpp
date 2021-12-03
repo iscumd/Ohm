@@ -284,7 +284,7 @@ public:
 		if (!connected) //attempt to prevent this callback from spamming.
 		{
 			HEIGHT = infoMsg->height;
-			WIDTH = infoMsg->height;
+			WIDTH = infoMsg->width;
 			ROS_INFO("Connected to camera");
 		}
 	}
