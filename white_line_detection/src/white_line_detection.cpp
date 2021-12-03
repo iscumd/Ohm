@@ -3,6 +3,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/opencv.hpp>
 #include <cv_bridge/cv_bridge.h>
+#include <cv_bridge/rgb_colors.h>
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud.h>
 #include <sensor_msgs/PointCloud2.h>
@@ -29,29 +30,22 @@ private:
 	/// The lower and upper bound for what we define 'white' as. TODO make sure this is correct.
 	int lowColor, upperColor = 255, kernelSize, nthPixel;
 
+	/// The per color bounds of what we define a 'white' pixel as.
 	int lowB = lowColor, lowG = lowColor, lowR = lowColor;
-	int highB = upperColor, highG = upperColor, highR = upperColor; // lower and upper limits for HSV slider
+	int highB = upperColor, highG = upperColor, highR = upperColor;
 
 	/// Camera resolution as retrived from the camera_info topic.
 	int HEIGHT, WIDTH;
 
-	double A, B, C, D; // calibration constants
+	/// Calibration constants. These are used for finding the offsets of the white pixels from the robot body.
+	double A, B, C, D;
 
-	//These should be constant matrices
-	cv::UMat Uinput, //TODO remove this one
-		UhsvImage,
-		UbinaryImage,
-		Uerosion,
-		/// The 3x3 perspective transform matrix.
-		Utransmtx,
-		/// The warped image. Mutable, but needed for the gui.
-		Utransformed,
-		Uresize;
+	/// The 3x3 perspective transform matrix. Should be treated as constant.
+	cv::UMat Utransmtx;
+	const cv::Rect ROI = cv::Rect(112, 12, 1670 - 112, 920 - 12); // TODO: change to params. (x, y, width, height)
 
-	cv::Mat image, temp, transmtx;
-	cv::Rect ROI = cv::Rect(112, 12, 1670 - 112, 920 - 12); // TODO: change to params. (x, y, width, height)
-
-	std::vector<cv::Point> pixelCoordinates;
+	/// Kernal used for white pixel filtering.
+	cv::Mat erosionKernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(kernelSize, kernelSize));
 
 	//empty callback functions but it is the only way to increment the sliders
 	static void lowBlueTrackbar(int, void *) {}
@@ -76,12 +70,6 @@ public:
 		nhPrivate.param("lower_bound_white", lowColor, 160);
 		nhPrivate.param("enable_imshow", enableImshow, false);
 
-		//TODO change these feilds to be passed between functions.
-		image = cv::Mat(HEIGHT, WIDTH, CV_8UC3);
-		Utransformed = cv::UMat(HEIGHT, WIDTH, CV_8UC1);
-		UbinaryImage = cv::UMat(HEIGHT, WIDTH, CV_8UC1);
-		Uerosion = cv::UMat(HEIGHT, WIDTH, CV_8UC1);
-
 		// Activate main logic loop
 		pixelPub = nh.advertise<sensor_msgs::PointCloud>("camera_cloud", 1);
 		pixelPubPCL2 = nh.advertise<sensor_msgs::PointCloud2>("camera_cloud_pcl2", 1);
@@ -90,6 +78,7 @@ public:
 		cameraInfoSub = nh.subscribe<sensor_msgs::CameraInfo>("camera_info", 1, &WhiteLineDetectionNode::rosCameraInfoCallback, this);
 	}
 
+	///Sets up the GPU to run our code using OpenCl.
 	void setupOCL()
 	{
 		cv::setUseOptimized(true);
@@ -170,35 +159,58 @@ public:
 		std::vector<cv::Point2d> quadPts{Q1, Q2, Q3, Q4};
 
 		//Copy transform to constant feild
-		transmtx = cv::getPerspectiveTransform(quadPts, squarePts);
+		auto transmtx = cv::getPerspectiveTransform(quadPts, squarePts);
 		transmtx.copyTo(Utransmtx);
 	}
 
 	/// Converts a raw image to an openCv matrix. This function should decode the image properly automatically.
-	void ptgrey2CVMat(const sensor_msgs::ImageConstPtr &imageMsg)
+	///
+	/// Returns the cv matrix form of the image.
+	cv::UMat ptgrey2CVMat(const sensor_msgs::ImageConstPtr &imageMsg) const
 	{
-		auto cvImage = cv_bridge::toCvCopy(imageMsg, "CV_8UC3"); // This should decode correctly, but we may need to deal with bayer filters
-		cvImage->image.copyTo(Uinput);							 //TODO we can just return this mat when removing feilds.
+		auto cvImage = cv_bridge::toCvCopy(imageMsg, "CV_8UC3"); // This should decode correctly, but we may need to deal with bayer filters depending on the driver.
+		return cvImage->image.getUMat(cv::ACCESS_RW); //TODO make sure this access is correct.
 	}
 
-	void shiftPerspective()
+	/// Applies the perspective warp to the image.
+	///
+	/// Returns the warped image matrix.
+	cv::UMat shiftPerspective(cv::UMat &inputImage) const
 	{
-		cv::warpPerspective(Uinput, Utransformed, Utransmtx, Utransformed.size());
-		Uresize = Utransformed(ROI);
+		//The transformed image
+		auto transformed = cv::UMat(HEIGHT, WIDTH, CV_8UC1);
+		//Apply the perspective warp previously calibrated.
+		cv::warpPerspective(inputImage, transformed, Utransmtx, transformed.size());
+
+		return transformed(ROI);
 	}
 
-	void imageFiltering()
+	/// Filters non-white pixels out of the warped image.
+	///
+	/// Returns the eroded image matrix. The only pixels left should be white.
+	cv::UMat imageFiltering(cv::UMat &warpedImage) const
 	{
-		cv::Mat erosionKernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(kernelSize, kernelSize));
-		cv::inRange(Uresize, cv::Scalar(lowB, lowG, lowR), cv::Scalar(highB, highG, highR), UbinaryImage);
-		cv::erode(UbinaryImage, Uerosion, erosionKernel);
+		auto binaryImage = cv::UMat(HEIGHT, WIDTH, CV_8UC1);
+		auto erodedImage = cv::UMat(HEIGHT, WIDTH, CV_8UC1);
+
+		cv::inRange(warpedImage, cv::Scalar(lowB, lowG, lowR), cv::Scalar(highB, highG, highR), binaryImage);
+		cv::erode(binaryImage, erodedImage, erosionKernel);
+
+		return erodedImage;
 	}
 
-	void getPixelPointCloud()
+	/// Converts the white pixel matrix into a pointcloud, then publishes the pointclouds.
+	///
+	/// This function works by offsetting each pixel by some calibrated constants to get the geographical lie of that pixel, which becomes a point
+	/// in the pointcloud. This pointcloud is then broadcast, allowing the nav stack to see the white lines as obsticles.
+	void getPixelPointCloud(cv::UMat &erodedImage) const
 	{
 		sensor_msgs::PointCloud msg;
 		sensor_msgs::PointCloud2 msg2;
-		cv::findNonZero(Uerosion, pixelCoordinates);
+		std::vector<cv::Point> pixelCoordinates;
+
+		cv::findNonZero(erodedImage, pixelCoordinates);
+		//Iter through all the white pixels, adding their locations to pointclouds.
 		for (size_t i = 0; i < pixelCoordinates.size(); i++)
 		{
 			if (i % nthPixel == 0)
@@ -232,14 +244,12 @@ public:
 		cv::createTrackbar("High Red", "TRACKBARS", &highR, upperColor, highRedTrackbar);
 	}
 
-	void display()
+	/// Updates the displayed guis with the last processed image.
+	void display(cv::UMat &Uinput, cv::UMat &Utransformed, cv::UMat &Uerosion)
 	{
-		if (enableImshow)
-		{
-			cv::imshow("original", Uinput);
-			cv::imshow("warp", Utransformed);
-			cv::imshow("erosion", Uerosion);
-		}
+		cv::imshow("original", Uinput);
+		cv::imshow("warp", Utransformed);
+		cv::imshow("erosion", Uerosion);
 	}
 
 	/// Callback passed to the image topic subscription. This produces a pointcloud for every
@@ -253,13 +263,16 @@ public:
 		else
 		{
 			//Decode image
-			ptgrey2CVMat(imageMsg);
+			auto cvImg = ptgrey2CVMat(imageMsg);
+			//Perspective warp
+			auto warpedImg = shiftPerspective(cvImg);
+			//Filter non-white pixels out
+			auto filteredImg = imageFiltering(warpedImg);
+			//Convert pixels to pointcloud and publish
+			getPixelPointCloud(filteredImg);
 
-			shiftPerspective();
-			imageFiltering();
-
-			getPixelPointCloud();
-			display();
+			//Display to gui if enabled.
+			if (enableImshow) display(cvImg, warpedImg, filteredImg);
 		}
 	}
 
@@ -286,6 +299,7 @@ int main(int argc, char **argv)
 	whiteLineDetector.createGUI();
 	whiteLineDetector.setupWarp(); // 05/15/2019 starting from clockwise tl_x: (662, 315) (1263, 318) (1371, 522) (573, 520) 1.5015
 
+	//This node is driven by the image topic, so just spin.
 	ros::spin();
 
 	ROS_INFO("Camera node shutting down");
